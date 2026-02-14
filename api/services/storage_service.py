@@ -53,12 +53,28 @@ class StorageService:
     @staticmethod
     def upload_cloudinary(credential, file_bytes, file_name):
         parsed = urlparse(credential.url_endpoint or "")
-        parts = parsed.path.strip("/").split("/")
-        cloud_name = parts[1] if len(parts) >= 2 and parts[0] == "v1_1" else (parts[0] if parts else "")
+        path = parsed.path.strip("/")
+        cloud_name = ""
+        # Support both api and res endpoints
+        # api.cloudinary.com/v1_1/<cloud_name>/...
+        if path.startswith("v1_1/"):
+            segs = path.split("/")
+            if len(segs) >= 2:
+                cloud_name = segs[1]
+        # res.cloudinary.com/<cloud_name>/...
+        if not cloud_name:
+            segs = path.split("/")
+            if len(segs) >= 1 and segs[0] and segs[0] != "v1_1":
+                cloud_name = segs[0]
+        # Fallback to bucket_name as cloud_name
+        if not cloud_name:
+            cloud_name = credential.bucket_name or ""
+        if not cloud_name:
+            raise requests.RequestException("Cloudinary upload failed: missing cloud_name in url_endpoint or bucket_name")
         ts = int(time.time())
-        to_sign = f"timestamp={ts}"
+        to_sign = f"public_id={file_name}&timestamp={ts}"
         signature = hashlib.sha1((to_sign + credential.private_key_encrypted).encode()).hexdigest()
-        url = f"https://api.cloudinary.com/v1_1/{cloud_name}/auto/upload"
+        url = f"https://api.cloudinary.com/v1_1/{cloud_name}/image/upload"
         data = {
             "api_key": credential.public_key,
             "timestamp": ts,
