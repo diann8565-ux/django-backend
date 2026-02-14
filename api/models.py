@@ -341,3 +341,8 @@ def log_file_upload(sender, instance, created, **kwargs):
             description=f"Uploaded file: {instance.name}",
             details={'file_id': str(instance.id), 'size': instance.size}
         )
+
+@receiver(pre_save, sender=ApiKey)
+def ensure_apikey_prefix(sender, instance, **kwargs):
+    if not instance.prefix and instance.key:
+        instance.prefix = instance.key[:7]
