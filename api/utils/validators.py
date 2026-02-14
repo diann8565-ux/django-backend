@@ -26,13 +26,11 @@ def validate_filename(filename):
 def sanitize_api_key(raw_key: str) -> str:
     """
     Returns a sanitized API key with allowed characters only.
-    Enforces 'sk_' prefix and urlsafe base64 chars.
+    Keeps exact value (no enforced prefix), trims and removes invalid chars.
     """
     if not raw_key:
         return ""
     raw_key = raw_key.strip()
-    if not raw_key.startswith("sk_"):
-        raw_key = f"sk_{raw_key}"
     # keep only allowed characters
     cleaned = re.sub(r'[^A-Za-z0-9_\-\.~]', '', raw_key)
     return cleaned
