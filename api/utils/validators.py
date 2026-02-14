@@ -22,3 +22,17 @@ def validate_filename(filename):
     """
     if not re.match(r'^[\w\-. ]+$', filename):
         raise ValidationError(_("Filename contains invalid characters."))
+
+def sanitize_api_key(raw_key: str) -> str:
+    """
+    Returns a sanitized API key with allowed characters only.
+    Enforces 'sk_' prefix and urlsafe base64 chars.
+    """
+    if not raw_key:
+        return ""
+    raw_key = raw_key.strip()
+    if not raw_key.startswith("sk_"):
+        raw_key = f"sk_{raw_key}"
+    # keep only allowed characters
+    cleaned = re.sub(r'[^A-Za-z0-9_\-\.~]', '', raw_key)
+    return cleaned

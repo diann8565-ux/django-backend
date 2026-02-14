@@ -18,6 +18,9 @@ DEBUG = os.environ.get('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*'] # For Vercel, ideally specific domains
 
+# External API Key (ENV-based)
+EXTERNAL_UPLOAD_API_KEY = os.environ.get('EXTERNAL_UPLOAD_API_KEY', '').strip()
+
 
 # Application definition
 

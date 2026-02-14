@@ -1,4 +1,11 @@
 
+import base64
+import hashlib
+import hmac
+import time
+import requests
+from urllib.parse import urlparse
+
 class StorageService:
     """
     Service to handle interactions with external storage providers.
@@ -19,12 +26,48 @@ class StorageService:
 
     @staticmethod
     def _generate_imagekit_signature(credential):
-        # Implementation for ImageKit signature generation
-        # import time, hashlib, hmac
-        # ... logic ...
-        return {"token": "dummy_token", "expire": 1234567890, "signature": "dummy_sig"}
+        return {"token": "not_required", "expire": int(time.time()) + 600, "signature": "not_required"}
 
     @staticmethod
     def _generate_cloudinary_signature(credential):
-        # Implementation for Cloudinary signature generation
-        return {"signature": "dummy_sig", "timestamp": 1234567890}
+        ts = int(time.time())
+        to_sign = f"timestamp={ts}"
+        signature = hashlib.sha1((to_sign + credential.private_key_encrypted).encode()).hexdigest()
+        return {"signature": signature, "timestamp": ts}
+
+    @staticmethod
+    def upload_imagekit(credential, file_bytes, file_name):
+        auth = base64.b64encode((credential.private_key_encrypted + ":").encode()).decode()
+        headers = {"Authorization": f"Basic {auth}"}
+        files = {
+            "file": (file_name, file_bytes),
+            "fileName": (None, file_name),
+        }
+        url = "https://upload.imagekit.io/api/v1/files/upload"
+        resp = requests.post(url, files=files, headers=headers, timeout=60)
+        if resp.status_code == 200:
+            data = resp.json()
+            return {"url": data.get("url"), "file_id": data.get("fileId")}
+        raise requests.RequestException(f"ImageKit upload failed: {resp.status_code} {resp.text}")
+
+    @staticmethod
+    def upload_cloudinary(credential, file_bytes, file_name):
+        parsed = urlparse(credential.url_endpoint or "")
+        parts = parsed.path.strip("/").split("/")
+        cloud_name = parts[1] if len(parts) >= 2 and parts[0] == "v1_1" else (parts[0] if parts else "")
+        ts = int(time.time())
+        to_sign = f"timestamp={ts}"
+        signature = hashlib.sha1((to_sign + credential.private_key_encrypted).encode()).hexdigest()
+        url = f"https://api.cloudinary.com/v1_1/{cloud_name}/auto/upload"
+        data = {
+            "api_key": credential.public_key,
+            "timestamp": ts,
+            "signature": signature,
+            "public_id": file_name,
+        }
+        files = {"file": (file_name, file_bytes)}
+        resp = requests.post(url, data=data, files=files, timeout=60)
+        if resp.status_code == 200:
+            j = resp.json()
+            return {"url": j.get("secure_url") or j.get("url"), "file_id": j.get("public_id")}
+        raise requests.RequestException(f"Cloudinary upload failed: {resp.status_code} {resp.text}")

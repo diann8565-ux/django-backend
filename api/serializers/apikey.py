@@ -1,7 +1,6 @@
 
 from rest_framework import serializers
 from api.models import ApiKey
-import secrets
 
 class ApiKeySerializer(serializers.ModelSerializer):
     class Meta:
@@ -13,12 +12,7 @@ class ApiKeySerializer(serializers.ModelSerializer):
         read_only_fields = ['id', 'prefix', 'last_used_at', 'created_at']
 
     def create(self, validated_data):
-        # Generate a secure random key
-        raw_key = secrets.token_urlsafe(32)
-        key_string = f"sk_{raw_key}"
-        validated_data['key'] = key_string # In real app, hash this
-        validated_data['prefix'] = key_string[:7]
-        return super().create(validated_data)
+        raise serializers.ValidationError("API Key generation disabled. Use ENV.")
     
     def to_representation(self, instance):
         data = super().to_representation(instance)
@@ -29,7 +23,5 @@ class ApiKeySerializer(serializers.ModelSerializer):
         return data
 
 class ApiKeyCreateResponseSerializer(ApiKeySerializer):
-    key = serializers.CharField(read_only=True)
-    
     class Meta(ApiKeySerializer.Meta):
-        fields = ApiKeySerializer.Meta.fields + ['key']
+        fields = ApiKeySerializer.Meta.fields

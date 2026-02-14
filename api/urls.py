@@ -13,6 +13,7 @@ from api.views.log import ActivityLogViewSet
 from api.views.apikey import ApiKeyViewSet
 from api.views.auth import DevLoginView, ChangePasswordView, CustomTokenObtainPairView
 from api.views.misc import AIProxyView, HealthCheckView
+from api.views.external import ExternalUploadView
 
 router = DefaultRouter()
 router.register(r'profiles', ProfileViewSet, basename='profile')
@@ -30,5 +31,6 @@ urlpatterns = [
     path('auth/password', ChangePasswordView.as_view(), name='change_password'),
     path('auth/me', ProfileViewSet.as_view({'get': 'me'}), name='me'),
     path('ai/generate', AIProxyView.as_view(), name='ai_generate'),
+    path('external/upload', ExternalUploadView.as_view(), name='external_upload'),
     path('', include(router.urls)),
 ]
